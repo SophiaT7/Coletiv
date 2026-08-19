@@ -1,0 +1,127 @@
+:root {
+  /* Paleta Coletiv */
+  --azul: #1d4ed8;
+  --azul-escuro: #1e3a8a;
+  --azul-claro: #dbeafe;
+  --verde: #16a34a;
+  --verde-claro: #dcfce7;
+  --laranja: #f97316;
+  --laranja-claro: #ffedd5;
+  --vermelho: #dc2626;
+  --amarelo: #eab308;
+
+  --texto: #0f172a;
+  --texto-suave: #64748b;
+  --borda: #e2e8f0;
+  --fundo: #f1f5f9;
+  --card: #ffffff;
+
+  --raio: 16px;
+  --sombra: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --sombra-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--texto);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a { text-decoration: none; color: inherit; }
+ul { list-style: none; }
+
+/* Moldura estilo celular */
+#root {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  background: var(--fundo);
+  position: relative;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Utilitários ---- */
+.tela {
+  padding: 16px 16px 90px; /* espaço para a bottom nav */
+  animation: surge 0.25s ease;
+}
+
+@keyframes surge {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--raio);
+  padding: 16px;
+  box-shadow: var(--sombra);
+}
+
+.titulo-secao {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-suave);
+  margin: 20px 4px 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.badge.ok { background: var(--verde-claro); color: var(--verde); }
+.badge.alerta { background: var(--laranja-claro); color: var(--laranja); }
+.badge.perigo { background: #fee2e2; color: var(--vermelho); }
+/* Usado quando o usuário ainda não informou o dado — nunca é um alerta. */
+.badge.sem-dados { background: var(--fundo); color: var(--texto-suave); }
+
+/* Mensagem de erro reutilizável (fica aqui, e não no Login.css, para
+   funcionar em qualquer tela sem depender da ordem de import). */
+.msg-erro {
+  background: #fee2e2;
+  color: var(--vermelho);
+  font-size: 13px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--azul);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 18px;
+  border-radius: 12px;
+  width: 100%;
+  transition: filter 0.15s;
+}
+.btn:active { filter: brightness(0.9); }
+.btn.secundario { background: var(--azul-claro); color: var(--azul); }

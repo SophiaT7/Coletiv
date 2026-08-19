@@ -1,0 +1,66 @@
+.login-tela {
+  min-height: 100vh;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--azul) 0%, var(--azul-escuro) 45%, var(--fundo) 45%);
+}
+
+.login-marca {
+  text-align: center;
+  color: #fff;
+  margin-bottom: 24px;
+}
+.login-logo {
+  width: 64px; height: 64px; margin: 0 auto 10px;
+  background: #fff; color: var(--azul);
+  border-radius: 18px; display: grid; place-items: center;
+  font-size: 34px; font-weight: 800;
+}
+.login-marca h1 { font-size: 28px; }
+.login-marca p { font-size: 13px; opacity: 0.9; }
+
+.login-form { display: flex; flex-direction: column; }
+.login-form h2 { font-size: 18px; margin-bottom: 14px; }
+.login-form label {
+  font-size: 13px; font-weight: 600; color: var(--texto-suave);
+  margin-bottom: 6px;
+}
+.login-form input {
+  border: 1.5px solid var(--borda);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 15px;
+  margin-bottom: 14px;
+  outline: none;
+}
+.login-form input:focus { border-color: var(--azul); }
+.login-form .btn { margin-top: 4px; }
+
+.campo-select {
+  border: 1.5px solid var(--borda);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 15px;
+  margin-bottom: 14px;
+  background: #fff;
+  font-family: inherit;
+  color: var(--texto);
+  outline: none;
+}
+.campo-select:focus { border-color: var(--azul); }
+
+.login-erro {
+  background: #fee2e2; color: var(--vermelho);
+  font-size: 13px; padding: 10px; border-radius: 8px; margin-bottom: 12px;
+}
+.login-aviso {
+  background: var(--verde-claro); color: var(--verde);
+  font-size: 13px; padding: 10px; border-radius: 8px; margin-bottom: 12px;
+}
+
+.login-troca {
+  text-align: center; font-size: 14px; margin-top: 18px; color: var(--texto-suave);
+}
+.login-troca button { color: var(--azul); font-weight: 700; }
