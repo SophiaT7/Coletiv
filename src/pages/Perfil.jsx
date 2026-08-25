@@ -20,21 +20,45 @@ export default function Perfil() {
 
   // LGPD: o usuário precisa conseguir apagar o que informou. A remoção da
   // conta de login em si depende do servidor, então explicamos isso.
+  //
+  // Apagamos os votos ANTES do perfil. Se a ordem fosse a inversa e o segundo
+  // delete falhasse, sobrariam votos de alguém que não tem mais perfil — dado
+  // órfão que ninguém mais consegue remover pelo app, já que a tela exige
+  // perfil para abrir. Falhando na primeira etapa, nada é apagado.
+  //
+  // Os dois deletes pedem `.select()` de propósito. Quando a RLS barra um
+  // delete, o Postgres não devolve erro: ele apaga zero linha e responde
+  // sucesso. Sem conferir o que voltou, o app deslogaria a pessoa anunciando
+  // uma exclusão que não aconteceu — e numa promessa de LGPD isso é pior que
+  // falhar na cara dura. O perfil TEM que voltar uma linha; os votos podem
+  // voltar zero legitimamente (quem nunca votou).
   async function apagarDados() {
     const ok = window.confirm(
       'Isso apaga em definitivo seu perfil (nome, cargo, salário, jornada e ' +
-      'respostas sobre direitos). Não dá para desfazer. Deseja continuar?',
+      'respostas sobre direitos) e os seus votos da Assembleia. Não dá para ' +
+      'desfazer. Deseja continuar?',
     )
     if (!ok) return
 
     setErro(''); setApagando(true)
-    const { error } = await supabase.from('profiles').delete().eq('id', usuario.id)
-    if (error) {
-      console.error('[Coletiv] Falha ao apagar o perfil:', error)
+
+    const falhou = (motivo, detalhe) => {
+      console.error(`[Coletiv] Falha ao apagar ${motivo}:`, detalhe)
       setErro('Não foi possível apagar seus dados. Tente de novo.')
       setApagando(false)
-      return
     }
+
+    const { error: erroVotos } = await supabase
+      .from('votos').delete().eq('usuario_id', usuario.id).select('enquete_id')
+    if (erroVotos) return falhou('os votos', erroVotos)
+
+    const { data: perfisApagados, error } = await supabase
+      .from('profiles').delete().eq('id', usuario.id).select('id')
+    if (error) return falhou('o perfil', error)
+    if (!perfisApagados?.length) {
+      return falhou('o perfil', 'o banco recusou a exclusão (nenhuma linha apagada)')
+    }
+
     await sair()
     navigate('/login')
   }
@@ -90,7 +114,8 @@ export default function Perfil() {
             </p>
             <p>
               Na Assembleia, seu voto fica ligado à sua conta para você poder
-              trocá-lo; os demais usuários veem apenas os totais.
+              trocá-lo; os demais usuários veem apenas os totais. Ao apagar
+              seus dados, os seus votos vão junto.
             </p>
           </div>
         )}
@@ -107,8 +132,8 @@ export default function Perfil() {
         {apagando ? 'Apagando...' : 'Apagar meus dados'}
       </button>
       <p style={{ fontSize: 11, color: 'var(--texto-suave)', marginTop: 8, lineHeight: 1.5 }}>
-        Apagar remove todo o seu perfil deste app. O email de login continua
-        cadastrado no Supabase — para excluí-lo também, fale com o
+        Apagar remove seu perfil e seus votos deste app. O email de login
+        continua cadastrado no Supabase — para excluí-lo também, fale com o
         administrador do projeto.
       </p>
     </div>

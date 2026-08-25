@@ -1,0 +1,5 @@
+# O app é uma SPA: qualquer rota tem que servir o index.html para o React Router
+# resolver o caminho no navegador. Sem isso o link de confirmação de email
+# (que volta em /?code=...) daria 404 antes do supabase-js ler o token.
+# Lido por Netlify e Cloudflare Pages; a Vercel usa o vercel.json.
+/*  /index.html  200

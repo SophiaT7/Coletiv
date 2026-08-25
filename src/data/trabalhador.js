@@ -1,8 +1,7 @@
-// Catálogo do app (cursos, vagas, enquetes).
+// Catálogo do app (cursos e enquetes).
 // O PERFIL do usuário vem do Supabase (tabela "profiles").
 // Os salários médios reais ficam em ./salarios.js
 // As regras de direitos e sobrecarga ficam em ./analise.js
-import { normalizar } from './salarios.js'
 
 // ---------------------------------------------------------------------
 // Cursos do "Centro de Capacitação"
@@ -40,34 +39,6 @@ export const cursos = [
     url: 'https://sebrae.com.br/sites/PortalSebrae/cursosonline',
   },
 ]
-
-// ---------------------------------------------------------------------
-// Vagas do "Mapa de Oportunidades"
-// As vagas vêm da tabela "vagas" no Supabase, preenchida pela Edge Function
-// "importar-vagas" (fonte: Adzuna). Aqui ficam só as regras que ordenam
-// essas vagas pelo perfil do usuário — nada é fixo no código.
-// ---------------------------------------------------------------------
-
-// Compatibilidade calculada a partir do perfil.
-// 50 de base + 30 se o setor bate + 20 se o cargo bate (10 se bate parcial).
-export function compatibilidade(vaga, perfil = {}) {
-  let pontos = 50
-  if (perfil.setor && vaga.setor && normalizar(perfil.setor) === normalizar(vaga.setor)) pontos += 30
-
-  const cargo = normalizar(perfil.cargo)
-  const titulo = normalizar(vaga.titulo)
-  if (cargo && (titulo.includes(cargo) || cargo.includes(titulo))) pontos += 20
-  else if (cargo && titulo.split(' ').some((p) => p.length > 3 && cargo.includes(p))) pontos += 10
-
-  return Math.min(pontos, 100)
-}
-
-// Recebe as vagas já lidas do banco e devolve ordenadas pela compatibilidade.
-export function ordenarPorCompatibilidade(vagas, perfil) {
-  return (vagas ?? [])
-    .map((v) => ({ ...v, compat: compatibilidade(v, perfil) }))
-    .sort((a, b) => b.compat - a.compat)
-}
 
 // ---------------------------------------------------------------------
 // Enquetes da "Assembleia Digital"
