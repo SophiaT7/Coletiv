@@ -121,6 +121,14 @@ create policy "trocar proprio voto"
   using (auth.uid() = usuario_id)
   with check (auth.uid() = usuario_id);
 
+-- Pode apagar o próprio voto. É o que permite o "Apagar meus dados" do
+-- Perfil levar embora TUDO que a pessoa gerou no app, e não só o perfil.
+drop policy if exists "apagar proprio voto" on public.votos;
+create policy "apagar proprio voto"
+  on public.votos for delete
+  to authenticated
+  using (auth.uid() = usuario_id);
+
 -- Publica a tabela no Realtime: é isso que faz o resultado da Assembleia
 -- se mover na tela de todo mundo enquanto as pessoas votam. Sem esta
 -- linha o app funciona, mas só atualiza ao recarregar a página.
@@ -138,33 +146,10 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------
--- 3) VAGAS — preenchidas pela Edge Function "importar-vagas" (Adzuna).
---    O app apenas LÊ esta tabela. Quem ESCREVE é a função, usando a chave
---    de service role, que roda por cima da RLS — por isso não existe
---    nenhuma policy de insert/update/delete aqui para o app.
+-- 3) LIMPEZA — a tabela "vagas" foi removida do app.
+--    O Mapa de Oportunidades agora só leva para a busca dos portais de
+--    emprego; nada de vaga é importado ou guardado aqui. Este drop existe
+--    para limpar quem rodou uma versão anterior do schema.
 -- ---------------------------------------------------------------------
-create table if not exists public.vagas (
-  id text primary key,            -- id da fonte (ex.: "adzuna:123"); evita duplicar
-  fonte text not null default 'adzuna',
-  titulo text not null,
-  empresa text default '',
-  local text default '',
-  setor text default 'Outro',     -- um dos setores do app, p/ a compatibilidade
-  salario_min numeric,
-  salario_max numeric,
-  descricao text default '',
-  url text,                       -- link para a vaga original
-  publicada_em timestamptz,
-  importada_em timestamptz default now()
-);
+drop table if exists public.vagas;
 
-create index if not exists vagas_importada_em_idx on public.vagas (importada_em desc);
-
-alter table public.vagas enable row level security;
-
--- Usuários logados leem as vagas; ninguém escreve pelo app.
-drop policy if exists "ver vagas" on public.vagas;
-create policy "ver vagas"
-  on public.vagas for select
-  to authenticated
-  using (true);

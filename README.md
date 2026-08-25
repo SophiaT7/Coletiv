@@ -15,8 +15,8 @@ tecnologia.
 - **Calculadora de Valorização** — compara o salário com a média do Paraná
 - **Detector de Sobrecarga** — analisa a jornada e o risco de esgotamento
 - **Centro de Capacitação** — links para cursos gratuitos de parceiros
-- **Mapa de Oportunidades** — vagas reais da região (via Adzuna), ordenadas
-  pela compatibilidade calculada a partir do perfil
+- **Mapa de Oportunidades** — busca de vagas nos principais portais do país,
+  com o cargo e a cidade do perfil já preenchidos
 - **Relatório personalizado** — junta as análises acima num resumo
 - **Assembleia Digital** — enquetes com votos salvos no Supabase e resultado
   atualizando ao vivo entre os participantes (Realtime)
@@ -55,12 +55,50 @@ O app usa o **Supabase** para login e banco de dados. Configure uma vez:
    Isso cria a tabela `profiles`, a tabela `votos` e as regras de segurança.
    **O script é idempotente** — pode rodar de novo a cada atualização do
    projeto, e é preciso rodá-lo sempre que o schema mudar.
-6. (Opcional, recomendado p/ testes) Em **Authentication → Providers → Email**,
-   desligue **Confirm email** para conseguir entrar sem confirmar o email.
+6. **Só em desenvolvimento**: em **Authentication → Sign In / Providers →
+   Email**, desligue **Confirm email**. O email embutido do Supabase é de
+   demonstração — limita 2 envios por hora e não entrega para endereços de
+   teste, então sem desligar isso você não consegue entrar. Antes de publicar,
+   religue e siga a seção [Colocando em produção](#colocando-em-produção).
 7. Reinicie o servidor: `npm run dev`.
 
 > Nunca use a chave `sb_secret_...` no front-end — ela ignora as regras de
 > segurança do banco. O arquivo `.env` está no `.gitignore` de propósito.
+
+## Colocando em produção
+
+Em produção a confirmação de email precisa funcionar de verdade, e para isso o
+Supabase tem que enviar pelo **seu** servidor de email, não pelo embutido.
+
+1. **Domínio verificado.** Crie conta num serviço de email transacional
+   (Resend, Postmark, SendGrid, Mailgun ou Amazon SES — os planos gratuitos
+   cobrem um app novo com folga) e verifique o domínio de onde as mensagens
+   vão sair. O serviço mostra os registros **SPF**, **DKIM** e **DMARC** para
+   colar no DNS. Esse passo não é opcional: sem ele o email sai, mas o Gmail e
+   o Outlook mandam direto para o spam. A propagação do DNS leva de minutos a
+   algumas horas — deixe pronto antes do dia do lançamento.
+2. **SMTP no Supabase.** Em **Project Settings → Authentication → SMTP
+   Settings**, ligue *Enable Custom SMTP* e preencha host, porta, usuário e
+   senha que o serviço forneceu. O remetente é um endereço do domínio
+   verificado (ex.: `nao-responda@seudominio.com.br`).
+3. **Rate limit.** Em **Authentication → Rate Limits**, suba o limite de emails
+   por hora. Ele continua no valor de desenvolvimento até ser trocado na mão,
+   mesmo com SMTP próprio configurado.
+4. **Religue o Confirm email** (passo 6 da configuração inicial).
+5. **URLs.** Em **Authentication → URL Configuration**, coloque a **Site URL**
+   como o domínio de produção e liste em **Redirect URLs** todas as origens
+   usadas: `http://localhost:5173/**` para o desenvolvimento e a URL de preview
+   da hospedagem, se houver. O cadastro manda o usuário de volta para a origem
+   de onde ele saiu (`emailRedirectTo` em `context/AuthContext.jsx`), e origem
+   fora dessa lista é recusada.
+6. **Rewrite da SPA.** A hospedagem precisa servir o `index.html` em qualquer
+   rota — os arquivos `public/_redirects` (Netlify, Cloudflare Pages) e
+   `vercel.json` (Vercel) já estão no repositório. Sem isso o link do email dá
+   404 antes de o app conseguir ler o token da URL.
+
+Para conferir, cadastre um endereço real, confirme pelo link do email e veja se
+ele cai no onboarding. Vale checar também a caixa de spam do Gmail e do
+Outlook — se cair lá, o problema está nos registros de DNS do passo 1.
 
 ## Como rodar
 
@@ -83,52 +121,14 @@ src/
 ├── data/
 │   ├── analise.js          regras de direitos e sobrecarga
 │   ├── salarios.js         médias salariais do Paraná (com fonte)
-│   └── trabalhador.js      catálogo: cursos, vagas e enquetes
+│   ├── sitesEmprego.js     portais de emprego do Mapa de Oportunidades
+│   └── trabalhador.js      catálogo: cursos e enquetes
 ├── components/             Layout, Cabecalho, Icone, RotaProtegida
 └── pages/                  Login, Onboarding e as 9 telas do app
 
 supabase/
-├── schema.sql              tabelas, RLS e constraints
-├── agendar-vagas.sql       agenda a importação de vagas (roda 1x)
-└── functions/
-    └── importar-vagas/     Edge Function que busca vagas na Adzuna
+└── schema.sql              tabelas, RLS e constraints
 ```
-
-## Vagas reais (Adzuna)
-
-O Mapa de Oportunidades lê da tabela `vagas`, que é preenchida por uma
-**Edge Function** ([`supabase/functions/importar-vagas`](supabase/functions/importar-vagas/index.ts))
-rodando de forma agendada. O navegador nunca fala com a Adzuna: a chave fica
-só no servidor. Para ligar em produção:
-
-1. Crie uma conta em <https://developer.adzuna.com> e pegue seu **App ID** e
-   **App Key** (o plano gratuito basta).
-2. Cadastre os dois como **segredos da função** (não no `.env` do front, que
-   viraria bundle público):
-   ```bash
-   supabase secrets set ADZUNA_APP_ID=seu-app-id ADZUNA_APP_KEY=sua-app-key
-   ```
-   (ou em **Project Settings → Edge Functions → Secrets** no painel).
-3. Rode o [`supabase/schema.sql`](supabase/schema.sql) (cria a tabela `vagas`,
-   se ainda não rodou depois desta atualização).
-4. Faça o deploy da função:
-   ```bash
-   supabase functions deploy importar-vagas
-   ```
-5. Teste uma importação manual e confira a tabela:
-   ```bash
-   supabase functions invoke importar-vagas
-   ```
-6. Agende para rodar sozinha a cada 6h: abra
-   [`supabase/agendar-vagas.sql`](supabase/agendar-vagas.sql), siga os
-   comentários (guardar URL + service role key no Vault) e rode no SQL Editor.
-
-Enquanto a função não tiver rodado, a tela mostra "Nenhuma vaga por enquanto"
-— não quebra. As cidades buscadas, o raio e o de-para de setor estão no topo
-do [`index.ts`](supabase/functions/importar-vagas/index.ts), fáceis de ajustar.
-
-> A `service_role` key (`sb_secret_...`) só aparece no agendamento do banco e
-> nos segredos da função — **nunca** no código do front nem no `.env`.
 
 ## Arquitetura do bundle
 
@@ -163,10 +163,12 @@ client direto com `@supabase/auth-js` + `@supabase/postgrest-js` e economizar
 
 ## Limitações conhecidas
 
-- As **vagas** dependem da cobertura da Adzuna na região; em cidades muito
-  pequenas o volume pode ser baixo (a busca usa um raio de 50 km para ajudar).
+- O **Mapa de Oportunidades** leva para a busca dos portais; o app não
+  hospeda vagas nem ordena por compatibilidade. Os portais não oferecem API
+  pública, e raspar o site deles esbarra nos termos de uso — em cidade
+  pequena o volume também seria baixo demais para um "match" significar algo.
 - Os **cursos** apontam para o catálogo do parceiro; o Coletiv não hospeda
   nem acompanha o progresso.
 - O **relatório** usa regras determinísticas, não um modelo de IA.
-- "Apagar meus dados" remove o perfil e os dados do app; excluir a conta de
-  login em si exige acesso administrativo ao Supabase.
+- "Apagar meus dados" remove o perfil e os votos da Assembleia; excluir a
+  conta de login em si exige acesso administrativo ao Supabase.

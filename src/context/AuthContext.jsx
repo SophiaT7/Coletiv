@@ -54,7 +54,14 @@ export function AuthProvider({ children }) {
 
   // --- Ações de autenticação ---
   const cadastrar = (email, senha) =>
-    supabase.auth.signUp({ email, password: senha })
+    supabase.auth.signUp({
+      email,
+      password: senha,
+      // O link do email de confirmação volta para o ambiente de onde o cadastro
+      // saiu (localhost, preview ou produção), e não para a Site URL fixa do
+      // painel. Cada origem usada precisa estar na lista de Redirect URLs.
+      options: { emailRedirectTo: window.location.origin },
+    })
 
   const entrar = (email, senha) =>
     supabase.auth.signInWithPassword({ email, password: senha })
