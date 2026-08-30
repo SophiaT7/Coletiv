@@ -95,11 +95,10 @@ Supabase tem que enviar pelo **seu** servidor de email, não pelo embutido.
    rota — os arquivos `public/_redirects` (Netlify, Cloudflare Pages) e
    `vercel.json` (Vercel) já estão no repositório. Sem isso o link do email dá
    404 antes de o app conseguir ler o token da URL.
-7. **Troque `SEU-DOMINIO`** pelas duas tags `og:url` e `og:image` do
-   [`index.html`](index.html). Os leitores de link (WhatsApp, Facebook,
-   LinkedIn) exigem URL absoluta e ignoram caminho relativo — enquanto o
-   placeholder estiver lá, o link compartilhado sai sem o cartão de
-   pré-visualização.
+7. **Atualize `og:url` e `og:image`** no [`index.html`](index.html) sempre que
+   o domínio mudar. Os leitores de link (WhatsApp, Facebook, LinkedIn) exigem
+   URL absoluta e ignoram caminho relativo — apontando para o domínio errado,
+   o link compartilhado sai sem o cartão de pré-visualização.
 
 Para conferir, cadastre um endereço real, confirme pelo link do email e veja se
 ele cai no onboarding. Vale checar também a caixa de spam do Gmail e do
