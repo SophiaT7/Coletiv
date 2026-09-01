@@ -41,7 +41,7 @@ export default function Login() {
         else setAviso('Conta criada! Verifique seu email para confirmar e depois faça login.')
       }
     } catch (err) {
-      setErro(traduzErro(err.message))
+      setErro(traduzErro(err))
     } finally {
       setCarregando(false)
     }
@@ -85,9 +85,27 @@ export default function Login() {
   )
 }
 
-function traduzErro(msg = '') {
+// Recebe o erro inteiro (e não só a mensagem) porque o status importa:
+// falha de servidor costuma vir com corpo vazio, e aí não há texto nenhum
+// para mostrar.
+function traduzErro(erro) {
+  const msg = typeof erro?.message === 'string' ? erro.message : ''
+
   if (msg.includes('Invalid login')) return 'Email ou senha incorretos.'
   if (msg.includes('already registered')) return 'Este email já está cadastrado.'
   if (msg.includes('confirm')) return 'Confirme seu email antes de entrar.'
-  return msg || 'Algo deu errado. Tente novamente.'
+  if (erro?.status === 429 || msg.includes('rate limit')) {
+    return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.'
+  }
+  // 5xx no cadastro é quase sempre o envio do email de confirmação falhando.
+  // Não é problema do que a pessoa digitou, então não faz sentido mandá-la
+  // conferir os campos.
+  if (erro?.status >= 500) {
+    return 'Não foi possível concluir agora — o servidor não respondeu. ' +
+      'Tente de novo em alguns minutos.'
+  }
+  // Descarta corpo de resposta sem conteúdo ("{}", "[]"), que chegava até a
+  // tela como se fosse mensagem de erro.
+  const util = /^[\s{}[\]]*$/.test(msg) ? '' : msg.trim()
+  return util || 'Algo deu errado. Tente novamente.'
 }
