@@ -175,5 +175,7 @@ client direto com `@supabase/auth-js` + `@supabase/postgrest-js` e economizar
 - Os **cursos** apontam para o catálogo do parceiro; o Coletiv não hospeda
   nem acompanha o progresso.
 - O **relatório** usa regras determinísticas, não um modelo de IA.
-- "Apagar meus dados" remove o perfil e os votos da Assembleia; excluir a
-  conta de login em si exige acesso administrativo ao Supabase.
+- "Apagar minha conta" remove o login, o perfil e os votos de uma vez, pela
+  função `apagar_minha_conta` do [`schema.sql`](supabase/schema.sql). O app
+  não apaga de `auth.users` direto: isso exige privilégio administrativo, e a
+  chave de service role nunca pode ir para o navegador.

@@ -146,7 +146,50 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------
--- 3) LIMPEZA — a tabela "vagas" foi removida do app.
+-- 3) APAGAR A PRÓPRIA CONTA (LGPD)
+--    O app não pode apagar de auth.users com a chave publicável — isso
+--    exige privilégio administrativo, e a chave de service role jamais
+--    pode ir para o navegador. Esta função roda com os privilégios do
+--    dono (security definer) e só alcança QUEM ESTÁ CHAMANDO: o id vem
+--    de auth.uid(), nunca de um parâmetro, então não há como pedir a
+--    exclusão de outra pessoa.
+--
+--    O perfil e os votos somem junto por causa do "on delete cascade"
+--    das duas tabelas — por isso o app faz uma chamada só.
+--
+--    O "set search_path" vazio é obrigatório numa função security
+--    definer: sem ele, alguém poderia criar um objeto com nome igual
+--    num schema à frente no caminho e fazer a função executá-lo.
+-- ---------------------------------------------------------------------
+create or replace function public.apagar_minha_conta()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'Sem usuario autenticado';
+  end if;
+
+  delete from auth.users where id = uid;
+
+  -- Se nada foi apagado, a conta nao existe mais (ou o delete falhou).
+  -- Levantar erro aqui e o que impede o app de anunciar uma exclusao
+  -- que nao aconteceu.
+  if not found then
+    raise exception 'Conta nao encontrada';
+  end if;
+end $$;
+
+-- Ninguém deslogado pode chamar; quem está logado só apaga a si mesmo.
+revoke all on function public.apagar_minha_conta() from public, anon;
+grant execute on function public.apagar_minha_conta() to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 4) LIMPEZA — a tabela "vagas" foi removida do app.
 --    O Mapa de Oportunidades agora só leva para a busca dos portais de
 --    emprego; nada de vaga é importado ou guardado aqui. Este drop existe
 --    para limpar quem rodou uma versão anterior do schema.
